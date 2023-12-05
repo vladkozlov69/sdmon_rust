@@ -1,4 +1,4 @@
-
+use nix::ioctl_readwrite;
 
 const MMC_RSP_PRESENT: u32 = 1 << 0;
 const MMC_RSP_136: u32 = 1 << 1;    /* 136 bit response */
@@ -23,6 +23,12 @@ pub const COMMAND_FLAGS_CMD56_DATA_IN: u32 = MMC_RSP_SPI_R1 | MMC_RSP_R1 | MMC_C
 pub const COMMAND_FLAGS_CMD56_WRITE: u32 = MMC_RSP_R1 | MMC_CMD_ADTC;
 
 pub const SD_BLOCK_SIZE: usize = 512;
+
+const MMC_BLOCK_MAJOR: u8 = 0xB3;
+
+ioctl_readwrite!(mmc_ioc_cmd_rw, MMC_BLOCK_MAJOR, 0, MmcIocCmd);
+
+pub type SDBlock = [u8; SD_BLOCK_SIZE];
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]

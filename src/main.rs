@@ -3,23 +3,22 @@
 use std::env;
 use std::os::fd::AsFd;
 use mmc_ioc_cmd::MmcIocCmd;
-use mmc_ioc_cmd::{COMMAND_FLAGS_CMD56_DATA_IN, COMMAND_FLAGS_CMD56_WRITE, SD_BLOCK_SIZE};
+use mmc_ioc_cmd::{COMMAND_FLAGS_CMD56_DATA_IN, COMMAND_FLAGS_CMD56_WRITE, SD_BLOCK_SIZE, mmc_ioc_cmd_rw, SDBlock};
+use parsers::{SDParser, LongsysSDParser, SandiskSDParser, SmartDataSDParser};
 use nix::errno::Errno;
-use nix::ioctl_readwrite;
+
 use std::fs::File;
 use std::os::fd::AsRawFd;
 use std::process;
 
 mod mmc_ioc_cmd;
+mod parsers;
 
-const MMC_BLOCK_MAJOR: u8 = 0xB3;
+
 const SD_GEN_CMD: u32 = 56;
 
 
-ioctl_readwrite!(mmc_ioc_cmd_rw, MMC_BLOCK_MAJOR, 0, MmcIocCmd);
-
-
-fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &[u8; SD_BLOCK_SIZE]) -> Result<i32, Errno> {
+fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDBlock) -> Result<i32, Errno> {
     let mut command: MmcIocCmd = MmcIocCmd::new(0, SD_GEN_CMD, 
         cmd56_arg, COMMAND_FLAGS_CMD56_DATA_IN, lba_block_data);
         
@@ -34,7 +33,7 @@ fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &[u8; SD_BLOCK_SIZE
 }
 
 fn cmd56_write(fdesc: i32, cmd56_arg: u32) -> Result<i32, Errno> {
-    let data_out: [u8; SD_BLOCK_SIZE] = [0; SD_BLOCK_SIZE];
+    let data_out: SDBlock = [0; SD_BLOCK_SIZE];
 
     let mut command: MmcIocCmd = MmcIocCmd::new(1, SD_GEN_CMD, 
         cmd56_arg, COMMAND_FLAGS_CMD56_WRITE, &data_out);
@@ -51,7 +50,7 @@ fn cmd56_write(fdesc: i32, cmd56_arg: u32) -> Result<i32, Errno> {
 }
 
 
-fn dump_buf(buf: &[u8; SD_BLOCK_SIZE]) {
+fn dump_buf(buf: &SDBlock) {
     println!("=== Begin buffer dump ===");
     for i in 0..buf.len() {
         print!("{:02X?} ", buf[i]);
@@ -65,23 +64,17 @@ fn dump_buf(buf: &[u8; SD_BLOCK_SIZE]) {
 fn main() {
     let args: Vec<String> = env::args().collect();
 
+    if args.len() < 2 {
+        println!("Usage: sdmon <device>");
+        process::exit(0);
+    }
+
     let device: &String = &args[1];
 
     dbg!(device);
 
-    // let _fd: i32;
-    // let fd: nix::libc::c_int = 0;
-    // let _cmd56_arg: i16;
-    let mut _data_in: [u8; SD_BLOCK_SIZE] = [0; SD_BLOCK_SIZE];
-    // let mut idata: MmcIocCmd = MmcIocCmd::new();
-    // idata.data_ptr = &mut  _data_in as *const u8 as u64;
-    // idata.flags = IDATA_FLAGS_CMD56_DATA_IN;
-    // let ptr = &mut idata as *mut _;
+    let mut _data_in: SDBlock = [0; SD_BLOCK_SIZE];
 
-    // dbg!(idata);
-    // dbg!(idata.data_ptr as *const u8);
-
-    // dump_buf(&_data_in);
 
     let ff = File::options().read(true).write(true).open(device);
     let fl = ff.unwrap();
@@ -96,6 +89,12 @@ fn main() {
     }
 
     if cmd56_data_in_res.is_ok() {
+        if LongsysSDParser::check_signature(&_data_in) {
+            LongsysSDParser::dump_data(&_data_in);
+        }
+        if SandiskSDParser::check_signature(&_data_in) {
+            SandiskSDParser::dump_data(&_data_in);
+        }
         process::exit(0);
     }
 
@@ -121,5 +120,4 @@ fn main() {
         println!("CMD56 2nd CALL FAILED: {}", cmd56_read_smart_data_res.err().unwrap());
         process::exit(0);
     }
-
 }
