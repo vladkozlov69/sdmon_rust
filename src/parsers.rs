@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use super::mmc_ioc_cmd::SDBlock;
+use std::str;
 
 pub trait SDParser {
     fn check_signature(_block: &SDBlock) -> bool {
@@ -71,11 +72,16 @@ impl SDParser for SandiskSDParser {
 
     fn dump_data(block: &SDBlock) {
         println!("Sandisk");
+
+        //let manufacture_yymmdd: Vec<u8> = vec![block[2..8]];
+        // let mm = &block[2..8];
+        let manufacture_yymmdd = str::from_utf8(&block[2..2+6]).unwrap();
         /*
         strncpy(tmpstr, (char *)&data_in[2], 6);
         tmpstr[6] = 0;
-        printf("\"manufactureYYMMDD\": \"%s\",\n", tmpstr);
+        // printf("\"manufactureYYMMDD\": \"%s\",\n", tmpstr);
         */
+        println!("manufactureYYMMDD: {}", manufacture_yymmdd);
         println!("healthStatusPercentUsed: {}", block[8]);
         println!("featureRevision: {}", block[11]);
         println!("generationIdentifier: {}", block[14]);
