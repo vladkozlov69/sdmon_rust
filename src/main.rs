@@ -91,11 +91,12 @@ fn main() {
     if cmd56_data_in_res.is_ok() {
         if LongsysSDParser::check_signature(&_data_in) {
             LongsysSDParser::dump_data(&_data_in);
+            process::exit(0);
         }
         if SandiskSDParser::check_signature(&_data_in) {
             SandiskSDParser::dump_data(&_data_in);
+            process::exit(0);
         }
-        process::exit(0);
     }
 
     let cmd56_write_res = cmd56_write(rfd, 0x00000010);
