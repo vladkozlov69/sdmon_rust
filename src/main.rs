@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::env;
 use std::os::fd::AsFd;
 use mmc_ioc_cmd::MmcIocCmd;
@@ -83,11 +81,6 @@ fn main() {
 
     let cmd56_data_in_res = cmd56_data_in(rfd, 0x00000001, &_data_in);
 
-    match cmd56_data_in_res {
-        Ok(res) => print!("Ok: {}", res),
-        Err(err) => print!("Error: {}", err),
-    }
-
     if cmd56_data_in_res.is_ok() {
         if LongsysSDParser::check_signature(&_data_in) {
             LongsysSDParser::dump_data(&_data_in);
@@ -101,21 +94,11 @@ fn main() {
 
     let cmd56_write_res = cmd56_write(rfd, 0x00000010);
 
-    match cmd56_write_res {
-        Ok(res) => println!("cmd56_write Ok: {}", res),
-        Err(err) => println!("cmd56_write Error: {}", err),
-    }
-
     if cmd56_write_res.is_err() {
         println!("CMD56 1st CALL FAILED: {}", cmd56_write_res.err().unwrap());
     }
 
     let cmd56_read_smart_data_res = cmd56_data_in(rfd, 0x00000021, &_data_in);
-
-    match cmd56_read_smart_data_res {
-        Ok(res) => println!("cmd56_read_smart_data_res Ok: {}", res),
-        Err(err) => println!("cmd56_read_smart_data_res Error: {}", err),
-    }
 
     if cmd56_read_smart_data_res.is_err() {
         println!("CMD56 2nd CALL FAILED: {}", cmd56_read_smart_data_res.err().unwrap());

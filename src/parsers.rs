@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::mmc_ioc_cmd::SDBlock;
 use std::str;
 
@@ -13,8 +11,12 @@ pub trait SDParser {
     }
 }
 
-fn nib16(block: &SDBlock, offset: usize, shift: i8) -> u16 {
-    return (block[offset] as u16) << shift;
+fn nb16(val1: u8, val2: u8) -> u16 {
+    return (val1 as u16) << 8 + (val2 as u16);
+}
+
+fn nb32(val1: u8, val2: u8, val3: u8, val4:u8) -> u32 {
+    return (val1 as u32) << 24 + (val2 as u32) << 16 + (val3 as u32) << 8 + (val4 as u32);
 }
 
 fn nib32(block: &SDBlock, offset: usize, nr: usize, shift: i8) -> u32 {
@@ -53,7 +55,7 @@ impl SDParser for LongsysSDParser {
     }
 
     fn dump_data(block: &SDBlock) {
-        println!("Longsys");
+        println!("Card type: Longsys");
         println!("SMARTVersions: {}",                   nword_to_u32(block, 4));
         println!("sizeOfDevSMART: {}",                  nword_to_u32(block, 12));
         println!("originalBadBlock: {}",                nword_to_u32(block, 16));
@@ -75,28 +77,15 @@ impl SDParser for SandiskSDParser {
     }
 
     fn dump_data(block: &SDBlock) {
-        println!("Sandisk");
-
-        //let manufacture_yymmdd: Vec<u8> = vec![block[2..8]];
-        // let mm = &block[2..8];
         let manufacture_yymmdd = str::from_utf8(&block[2..2+6]).unwrap();
-        /*
-        strncpy(tmpstr, (char *)&data_in[2], 6);
-        tmpstr[6] = 0;
-        // printf("\"manufactureYYMMDD\": \"%s\",\n", tmpstr);
-        */
+        let product_string = str::from_utf8(&block[49..49+32]).unwrap();
+
+        println!("Card type: Sandisk");
         println!("manufactureYYMMDD: {}", manufacture_yymmdd);
         println!("healthStatusPercentUsed: {}", block[8]);
         println!("featureRevision: {}", block[11]);
         println!("generationIdentifier: {}", block[14]);
-
-        let product_string = str::from_utf8(&block[49..49+32]).unwrap();
         println!("productString: {}", product_string);
-        /*
-        strncpy(tmpstr, (char *)&data_in[49], 32);
-        tmpstr[32] = 0;
-        printf("\"productString\": \"%s\",\n", tmpstr);
-        */
     }
 }
 
@@ -106,49 +95,38 @@ impl SDParser for SmartDataSDParser {
     }
 
     fn dump_data(block: &SDBlock) {
-        println!("Generic Smart-capable SD");
-        /*
-        printf("\"flashId\": "
-        "[\"0x%02x\",\"0x%02x\",\"0x%02x\",\"0x%02x\",\"0x%02x\",\"0x%02x\","
-        "\"0x%02x\",\"0x%02x\",\"0x%02x\"],\n",
-        data_in[0], data_in[1], data_in[2], data_in[3], data_in[4], data_in[5], data_in[6], data_in[7], data_in[8]);
- printf("\"icVersion\": [\"0x%02x\",\"0x%02x\"],\n", data_in[9], data_in[10]);
- printf("\"fwVersion\": [%02d,%02d],\n", data_in[11],
-        data_in[12]); // show in decimal
- printf("\"ceNumber\": \"0x%02x\",\n", data_in[14]);
-*/
-        println!("spareBlockCount: {}", nib16(block, 16, 8) + nib16(block, 17, 0));
+        let mut initial_bad_block_count: u16 = 0;
+        let mut later_bad_block_count: u16 = 0;
 
- /* 
- // sum up to get initial bad block count
- sum = 0;
- for (i = 32; i < 64; i++)
-   sum += data_in[i];
- printf("\"initialBadBlockCount\": %ld,\n", sum);
+        for i in 32..63 {
+            initial_bad_block_count = initial_bad_block_count + block[i] as u16;
+        }
 
- printf("\"goodBlockRatePercent\": %2.2f,\n", (float)((float)((int)((data_in[64] << 8) + data_in[65])) / 100));
+        for i in 184..215 {
+            later_bad_block_count = later_bad_block_count + block[i] as u16;
+        }
 
- printf("\"totalEraseCount\": %ld,\n", (long)((data_in[80] << 24) + (data_in[81] << 16) + (data_in[82] << 8) + data_in[83]));
+        println!("Card type: Generic Smart-capable SD");
+        println!("flashId: [{:02X?},{:02X?},{:02X?},{:02X?},{:02X?},{:02X?},{:02X?},{:02X?},{:02X?}]",
+            block[0], block[1], block[2], block[3], block[4], block[5], block[6], block[7], block[8]);
+        println!("icVersion: [{:02X?},{:02X?}]", block[9], block[10]);
+        println!("fwVersion: [{},{}]", block[11], block[12]); // show in decimal
+        println!("ceNumber: {:02X?}", block[14]);
+        println!("spareBlockCount: {}", nb16(block[17], block[16]));
+        println!("initialBadBlockCount: {}", initial_bad_block_count);
+        println!("goodBlockRatePercent: {}", nb16(block[64], block[65]) as f32 / 100.0);
+        println!("totalEraseCount: {}", nb32(block[80], block[81], block[82], block[83]));
+        println!("enduranceRemainLifePercent: {}", nb16(block[97], block[97]) as f32 / 100.0);
+        println!("avgEraseCount: {}", nb32(block[104], block[105], block[98], block[99]));
+        println!("minEraseCount: {}", nb32(block[106], block[107], block[100], block[101]));
+        println!("maxEraseCount: {}", nb32(block[108], block[109], block[102], block[103]));
+        println!("powerUpCount: {}", nb32(block[112], block[113], block[114], block[115]));
+        println!("abnormalPowerOffCount: {}", nb16(block[128], block[129]));
+        println!("totalRefreshCount: {}", nb16(block[160], block[161]));
+        println!("productMarker: [{:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?}]",
+            block[176], block[177], block[178], block[179], block[180], block[181], block[182], block[183]);
+        println!("laterBadBlockCount: {}", later_bad_block_count);
 
- printf("\"enduranceRemainLifePercent\": %2.2f,\n", (float)((float)((int)((data_in[96] << 8) + data_in[97])) / 100));
-
- printf("\"avgEraseCount\": %ld,\n", (long)((data_in[104] << 24) + (data_in[105] << 16) + (data_in[98] << 8) + data_in[99]));
- printf("\"minEraseCount\": %ld,\n", (long)((data_in[106] << 24) + (data_in[107] << 16) + (data_in[100] << 8) + data_in[101]));
- printf("\"maxEraseCount\": %ld,\n", (long)((data_in[108] << 24) + (data_in[109] << 16) + (data_in[102] << 8) + data_in[103]));
-
- printf("\"powerUpCount\": %ld,\n", (long)((data_in[112] << 24) + (data_in[113] << 16) + (data_in[114] << 8) + data_in[115]));
- printf("\"abnormalPowerOffCount\": %d,\n", (int)((data_in[128] << 8) + data_in[129]));
- printf("\"totalRefreshCount\": %d,\n", (int)((data_in[160] << 8) + data_in[161]));
- printf("\"productMarker\": "
-        "[\"0x%02x\",\"0x%02x\",\"0x%02x\",\"0x%02x\",\"0x%02x\",\"0x%02x\","
-        "\"0x%02x\",\"0x%02x\"],\n",
-        data_in[176], data_in[177], data_in[178], data_in[179], data_in[180], data_in[181], data_in[182], data_in[183]);
-
- sum = 0;
- for (i = 184; i < 216; i++)
-   sum += data_in[i];
- printf("\"laterBadBlockCount\": %ld,\n", sum);
-*/
     }
 }
 

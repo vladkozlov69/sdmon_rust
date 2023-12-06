@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use nix::ioctl_readwrite;
 
 const MMC_RSP_PRESENT: u32 = 1 << 0;
@@ -62,8 +64,8 @@ impl MmcIocCmd {
             blocks : 1,
             postsleep_min_us : 0, 
             postsleep_max_us : 0,
-            data_timeout_ns : 4000000000, 
-            cmd_timeout_ms : 5000,
+            data_timeout_ns : 0, 
+            cmd_timeout_ms : 0,
             __pad : 0, 
             data_ptr : lba_block_data as *const u8 as u64 }
     }
