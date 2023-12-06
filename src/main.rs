@@ -74,7 +74,7 @@ fn main() {
 
 
     let ff = File::options().read(true).write(true).open(device);
-    let fl = ff.unwrap();
+    let fl = ff.unwrap(); // TODO check result here
     let fd = fl.as_fd();
     let rfd = fd.as_raw_fd();
 
