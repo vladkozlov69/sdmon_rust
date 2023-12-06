@@ -120,4 +120,7 @@ fn main() {
         println!("CMD56 2nd CALL FAILED: {}", cmd56_read_smart_data_res.err().unwrap());
         process::exit(0);
     }
+    else {
+        SmartDataSDParser::dump_data(&_data_in)
+    }
 }
