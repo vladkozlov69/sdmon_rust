@@ -47,7 +47,6 @@ fn cmd56_write(fdesc: i32, cmd56_arg: u32) -> Result<i32, Errno> {
     // printf("\"idata.response[]\":\"0x%02x 0x%02x 0x%02x 0x%02x\",\n", idata.response[0], idata.response[1], idata.response[2], idata.response[3]);
 }
 
-
 fn dump_buf(buf: &SDBlock) {
     println!("=== Begin buffer dump ===");
     for i in 0..buf.len() {
@@ -82,13 +81,14 @@ fn main() {
     let cmd56_data_in_res = cmd56_data_in(rfd, 0x00000001, &_data_in);
 
     if cmd56_data_in_res.is_ok() {
-        if LongsysSDParser::check_signature(&_data_in) {
-            LongsysSDParser::dump_data(&_data_in);
-            process::exit(0);
-        }
-        if SandiskSDParser::check_signature(&_data_in) {
-            SandiskSDParser::dump_data(&_data_in);
-            process::exit(0);
+        let parsers_vec: Vec<Box<dyn SDParser>> = vec![Box::new(LongsysSDParser{}), Box::new(SandiskSDParser{})];
+
+        for parser in parsers_vec {
+            if parser.check_signature(&_data_in)
+            {
+                parser.dump_data(&_data_in);
+                process::exit(0);
+            }
         }
     }
 
@@ -105,6 +105,6 @@ fn main() {
         process::exit(0);
     }
     else {
-        SmartDataSDParser::dump_data(&_data_in)
+        SmartDataSDParser{}.dump_data(&_data_in)
     }
 }

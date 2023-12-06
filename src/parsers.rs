@@ -2,11 +2,11 @@ use super::mmc_ioc_cmd::SDBlock;
 use std::str;
 
 pub trait SDParser {
-    fn check_signature(_block: &SDBlock) -> bool {
+    fn check_signature(&self, _block: &SDBlock) -> bool {
         return false;
     }
 
-    fn dump_data(_block: &SDBlock) {
+    fn dump_data(&self, _block: &SDBlock) {
 
     }
 }
@@ -50,11 +50,11 @@ pub struct SandiskSDParser;
 pub struct SmartDataSDParser;
 
 impl SDParser for LongsysSDParser {
-    fn check_signature(block: &SDBlock) -> bool {
+    fn check_signature(&self, block: &SDBlock) -> bool {
         return block[0] == 0x70 && block[1] == 0x58;
     }
 
-    fn dump_data(block: &SDBlock) {
+    fn dump_data(&self, block: &SDBlock) {
         println!("Card type: Longsys");
         println!("SMARTVersions: {}",                   nword_to_u32(block, 4));
         println!("sizeOfDevSMART: {}",                  nword_to_u32(block, 12));
@@ -72,11 +72,11 @@ impl SDParser for LongsysSDParser {
 }
 
 impl SDParser for SandiskSDParser {
-    fn check_signature(block: &SDBlock) -> bool {
+    fn check_signature(&self, block: &SDBlock) -> bool {
         return block[0] == 0x44 && block[1] == 0x53;
     }
 
-    fn dump_data(block: &SDBlock) {
+    fn dump_data(&self, block: &SDBlock) {
         let manufacture_yymmdd = str::from_utf8(&block[2..2+6]).unwrap();
         let product_string = str::from_utf8(&block[49..49+32]).unwrap();
 
@@ -90,11 +90,11 @@ impl SDParser for SandiskSDParser {
 }
 
 impl SDParser for SmartDataSDParser {
-    fn check_signature(block: &SDBlock) -> bool {
+    fn check_signature(&self, block: &SDBlock) -> bool {
         return (block[0] != 0x70 || block[1] != 0x58) && (block[0] != 0x44 || block[0] != 0x53);
     }
 
-    fn dump_data(block: &SDBlock) {
+    fn dump_data(&self, block: &SDBlock) {
         let mut initial_bad_block_count: u16 = 0;
         let mut later_bad_block_count: u16 = 0;
 
