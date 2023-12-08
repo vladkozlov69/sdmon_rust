@@ -86,9 +86,9 @@ impl SDParser for SandiskSDParser {
         let product_string = str::from_utf8(&block[49..49+32]).unwrap();
         const TAG_SIZE: usize = 431 - 405 + 1;
         let mut tag_bytes: [u8; TAG_SIZE] = [0; TAG_SIZE];
-        tag_bytes.clone_from_slice(&block[405..431]);
+        tag_bytes.clone_from_slice(&block[405..432]);
         for i in 0..TAG_SIZE-1 {
-            if tag_bytes[i] < 0x20
+            if tag_bytes[i] < 0x20 || tag_bytes[i] > 0x7F
             {
                 tag_bytes[i] = b'_';
             }
