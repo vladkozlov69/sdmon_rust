@@ -12,11 +12,14 @@ pub trait SDParser {
 }
 
 fn nb16(val1: u8, val2: u8) -> u16 {
-    return (val1 as u16) << 8 + (val2 as u16);
+    return ((val1 as u16) << 8) | (val2 as u16);
 }
 
 fn nb32(val1: u8, val2: u8, val3: u8, val4:u8) -> u32 {
-    return (val1 as u32) << 24 + (val2 as u32) << 16 + (val3 as u32) << 8 + (val4 as u32);
+    return ((val1 as u32) << 24) | 
+           ((val2 as u32) << 16) | 
+           ((val3 as u32) << 8)  | 
+           (val4 as u32);
 }
 
 fn nib32(block: &SDBlock, offset: usize, nr: usize, shift: i8) -> u32 {
@@ -47,6 +50,8 @@ fn nword_to_u64(block: &SDBlock, offset: usize) -> u64 {
 
 pub struct LongsysSDParser;
 pub struct SandiskSDParser;
+
+pub struct MicronSDParser;
 pub struct SmartDataSDParser;
 
 impl SDParser for LongsysSDParser {
@@ -73,25 +78,60 @@ impl SDParser for LongsysSDParser {
 
 impl SDParser for SandiskSDParser {
     fn check_signature(&self, block: &SDBlock) -> bool {
-        return block[0] == 0x44 && block[1] == 0x53;
+        return block[0] == 0x44 && (block[1] == 0x53 || block[1] == 0x57);
     }
 
     fn dump_data(&self, block: &SDBlock) {
         let manufacture_yymmdd = str::from_utf8(&block[2..2+6]).unwrap();
         let product_string = str::from_utf8(&block[49..49+32]).unwrap();
-
-        println!("Card type: Sandisk");
+        const TAG_SIZE: usize = 431 - 405 + 1;
+        let mut tag_bytes: [u8; TAG_SIZE] = [0; TAG_SIZE];
+        tag_bytes.clone_from_slice(&block[405..431]);
+        for i in 0..TAG_SIZE-1 {
+            if tag_bytes[i] < 0x20
+            {
+                tag_bytes[i] = b'_';
+            }
+        }
+        let tag_string = str::from_utf8(&tag_bytes).unwrap();
+        
+        if block[1] == 0x57 {
+            println!("Card type: Western Digital");
+        } else {
+            println!("Card type: Sandisk");
+        }
+        
         println!("manufactureYYMMDD: {}", manufacture_yymmdd);
         println!("healthStatusPercentUsed: {}", block[8]);
         println!("featureRevision: {}", block[11]);
         println!("generationIdentifier: {}", block[14]);
         println!("productString: {}", product_string);
+        println!("power-on times: {}", nb32(0, block[24], block[25], block[26]));
+        println!("Tag: {}", tag_string);
+        /*
+1. SanDisk Industrial, compared to the data manual, adds 26L-24H, data name: power-on times
+2. SanDisk Industrial, compared to the data manual, adds 405-424, 20 Bytes, data name: product code, ASCII format
+3. SanDisk Industrial, compared to the data manual, adds 426-431, 6 Bytes, data name: product serial number, HEX format
+         */
+    }
+}
+
+impl SDParser for MicronSDParser {
+    fn check_signature(&self, block: &SDBlock) -> bool {
+        return block[0] == 0x4d && block[1] == 0x45;
+    }
+
+    fn dump_data(&self, block: &SDBlock) {
+        println!("Card type: Generic Micron");
+        println!("Percentange step utilization: {}", block[7]);
+        println!("TLC area utilization: {}", block[8]);
+        println!("SLC area utilization: {}", block[9]);
     }
 }
 
 impl SDParser for SmartDataSDParser {
     fn check_signature(&self, block: &SDBlock) -> bool {
-        return (block[0] != 0x70 || block[1] != 0x58) && (block[0] != 0x44 || block[0] != 0x53);
+        return (block[0] != 0x70 || block[1] != 0x58) && (block[0] != 0x44 || (block[1] != 0x53 || block[1] != 0x57));
     }
 
     fn dump_data(&self, block: &SDBlock) {

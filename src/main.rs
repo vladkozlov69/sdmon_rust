@@ -1,7 +1,13 @@
 use std::env;
 use std::os::fd::AsFd;
 use mmc_ioc_cmd::MmcIocCmd;
-use mmc_ioc_cmd::{COMMAND_FLAGS_CMD56_DATA_IN, COMMAND_FLAGS_CMD56_WRITE, SD_BLOCK_SIZE, mmc_ioc_cmd_rw, SDBlock};
+use mmc_ioc_cmd::{
+    COMMAND_FLAGS_CMD56_DATA_IN, 
+    COMMAND_FLAGS_CMD56_WRITE, 
+    SD_BLOCK_SIZE, 
+    mmc_ioc_cmd_rw, 
+    SDBlock
+};
 use parsers::{SDParser, LongsysSDParser, SandiskSDParser, SmartDataSDParser};
 use nix::errno::Errno;
 
@@ -78,17 +84,35 @@ fn main() {
     let fd = fl.as_fd();
     let rfd = fd.as_raw_fd();
 
-    let cmd56_data_in_res = cmd56_data_in(rfd, 0x00000001, &_data_in);
+    let cmds: [u32; 6] = [
+        0x00000001, // Sandisk, Longsys
+        0x110005fb, // Micron
+        0x53420001, // Swissbit 
+        0x110005F9, // ADATA
+        0x110005FD, // Longsys Industrial M9H
+        0x11000001  // ATP Industrial 
+    ];
 
-    if cmd56_data_in_res.is_ok() {
-        let parsers_vec: Vec<Box<dyn SDParser>> = vec![Box::new(LongsysSDParser{}), Box::new(SandiskSDParser{})];
+    for cmd  in cmds {
 
-        for parser in parsers_vec {
-            if parser.check_signature(&_data_in)
-            {
-                parser.dump_data(&_data_in);
-                process::exit(0);
+        let cmd56_data_in_res = cmd56_data_in(rfd, cmd, &_data_in);
+
+        if cmd56_data_in_res.is_ok() {
+            let parsers_vec: Vec<Box<dyn SDParser>> = vec![Box::new(LongsysSDParser{}), Box::new(SandiskSDParser{})];
+
+            for parser in parsers_vec {
+                if parser.check_signature(&_data_in)
+                {
+                    parser.dump_data(&_data_in);
+                    process::exit(0);
+                }
             }
+
+            println!("Command {:010X?} succeeded but no parser available", cmd);
+            dump_buf(&_data_in);
+        }
+        else {
+            println!("Command {:010X?} failed", cmd);
         }
     }
 
