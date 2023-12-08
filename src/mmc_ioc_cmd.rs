@@ -2,6 +2,7 @@
 
 use nix::ioctl_readwrite;
 use nix::errno::Errno;
+use super::dump_buf;
 
 const MMC_RSP_PRESENT: u32 = 1 << 0;
 const MMC_RSP_136: u32 = 1 << 1;    /* 136 bit response */
