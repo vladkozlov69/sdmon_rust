@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use nix::ioctl_readwrite;
+use nix::errno::Errno;
 
 const MMC_RSP_PRESENT: u32 = 1 << 0;
 const MMC_RSP_136: u32 = 1 << 1;    /* 136 bit response */
@@ -27,6 +28,7 @@ pub const COMMAND_FLAGS_CMD56_WRITE: u32 = MMC_RSP_R1 | MMC_CMD_ADTC;
 pub const SD_BLOCK_SIZE: usize = 512;
 
 const MMC_BLOCK_MAJOR: u8 = 0xB3;
+const SD_GEN_CMD: u32 = 56;
 
 ioctl_readwrite!(mmc_ioc_cmd_rw, MMC_BLOCK_MAJOR, 0, MmcIocCmd);
 
@@ -68,5 +70,40 @@ impl MmcIocCmd {
             cmd_timeout_ms : 0,
             __pad : 0, 
             data_ptr : lba_block_data as *const u8 as u64 }
+    }
+}
+
+pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDBlock, debug: bool) -> Result<i32, Errno> {
+    let mut command: MmcIocCmd = MmcIocCmd::new(0, SD_GEN_CMD, 
+        cmd56_arg, COMMAND_FLAGS_CMD56_DATA_IN, lba_block_data);
+        
+    unsafe {
+        let res = mmc_ioc_cmd_rw(fdesc, &mut command/* as *mut _ */);
+        if debug {
+            dbg!(command);
+            if res.is_ok() {
+                dump_buf(lba_block_data);
+            }
+        }
+
+        return res;
+    }
+}
+
+pub fn cmd56_write(fdesc: i32, cmd56_arg: u32, debug: bool) -> Result<i32, Errno> {
+    let lba_block_data: SDBlock = [0; SD_BLOCK_SIZE];
+
+    let mut command: MmcIocCmd = MmcIocCmd::new(1, SD_GEN_CMD, 
+        cmd56_arg, COMMAND_FLAGS_CMD56_WRITE, &lba_block_data);
+
+    unsafe {
+        let res = mmc_ioc_cmd_rw(fdesc, &mut command);
+        if debug {
+            dbg!(command);
+            if res.is_ok() {
+                dump_buf(&lba_block_data);
+            }
+        }
+        return res;
     }
 }
