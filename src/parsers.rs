@@ -215,3 +215,14 @@ impl SDParser for SmartDataSDParser {
     }
 }
 
+pub fn get_parsers() -> Vec<Box<dyn SDParser>> {
+    vec![
+        Box::new(LongsysSDParser{}), 
+        Box::new(SandiskSDParser{}), 
+        Box::new(MicronSDParser{}), 
+        Box::new(SwissbitSDParser{})]
+}
+
+pub fn get_smartdata_parser() -> Box<dyn SDParser> {
+    Box::new(SmartDataSDParser{})
+}
