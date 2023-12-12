@@ -52,6 +52,8 @@ pub struct LongsysSDParser;
 pub struct SandiskSDParser;
 
 pub struct MicronSDParser;
+
+pub struct SwissbitSDParser;
 pub struct SmartDataSDParser;
 
 impl SDParser for LongsysSDParser {
@@ -122,11 +124,56 @@ impl SDParser for MicronSDParser {
     }
 
     fn dump_data(&self, block: &SDBlock) {
-        println!("Card type: Generic Micron");
+        println!("Card type: Micron");
         println!("Percentange step utilization: {}", block[7]);
         println!("TLC area utilization: {}", block[8]);
         println!("SLC area utilization: {}", block[9]);
     }
+}
+
+impl SDParser for SwissbitSDParser {
+    fn check_signature(&self, block: &SDBlock) -> bool {
+        return block[0] == 0x53 && block[1] == 0x77;
+    }
+
+    fn dump_data(&self, block: &SDBlock) {
+        println!("Card type: Swissbit Micron");
+
+        println!("fwVersion: [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}]", block[32], block[33], block[34], block[35], block[36], block[37], block[38], block[39], block[40], block[41], block[42], block[43], block[44], block[45], block[46], block[47]); // show char
+        println!("User area rated cycles: {}", nb32(block[48], block[49], block[50], block[51])); 
+        println!("User area max cycle cnt: {}", nb32(block[52], block[53], block[54], block[55]));
+        println!("User area total cycle cnt: {}", nb32(block[56], block[57], block[58], block[59]));
+        println!("User area average cycle cnt: {}", nb32(block[60], block[61], block[62], block[63]));
+        println!("System area max cycle cnt: {}", nb32(block[68], block[69], block[70], block[71]));
+        println!("System area total cycle cnt: {}", nb32(block[72], block[73], block[74], block[75]));
+        println!("System area average cycle cnt: {}", nb32(block[76], block[77], block[78], block[79]));
+        println!("Remaining Lifetime Percent: {}%", block[80]);
+        match block[86]
+        {
+            0x00 => println!("Speed mode: Default speed"),
+            0x01 => println!("Speed mode: High speed"),
+            0x10 => println!("Speed mode: SDR12 speed"),
+            0x11 => println!("Speed mode: SDR25 speed"),
+            0x12 => println!("Speed mode: SDR50 speed"),
+            0x14 => println!("Speed mode: DDR50 speed"),
+            0x18 => println!("Speed mode: SDR104 speed"),
+            _ => println!("Speed mode: unknown ({})", block[86]),
+        }
+        match block[87]
+        {
+            0x00 => println!("Bus width: 1 bit"),
+            0x10 => println!("Bus width: 4 bits"),
+            _ => println!("Bus width: unknown ({})", block[87]),
+        }
+        println!("User area spare blocks cnt: {}", nb32(block[88], block[89], block[90], block[91]));
+        println!("System area spare blocks cnt: {}", nb32(block[92], block[93], block[94], block[95]));
+        println!("User area runtime bad blocks cnt: {}", nb32(block[96], block[97], block[98], block[99]));
+        println!("System area runtime bad blocks cnt: {}", nb32(block[100], block[101], block[102], block[103]));
+        println!("User area refresh cnt: {}", nb32(block[104], block[105],block[106], block[107]));
+        println!("System area refresh cnt: {}", nb32(block[108], block[109],block[110], block[111]));
+        println!("Interface crc cnt: {}", nb32(block[112], block[113],block[114], block[115]));
+        println!("Power cycle cnt: {}", nb32(block[116], block[117], block[118], block[119]));
+    } 
 }
 
 impl SDParser for SmartDataSDParser {
