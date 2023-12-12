@@ -50,9 +50,7 @@ fn nword_to_u64(block: &SDBlock, offset: usize) -> u64 {
 
 pub struct LongsysSDParser;
 pub struct SandiskSDParser;
-
 pub struct MicronSDParser;
-
 pub struct SwissbitSDParser;
 pub struct SmartDataSDParser;
 

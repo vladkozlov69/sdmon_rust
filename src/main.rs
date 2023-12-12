@@ -6,7 +6,7 @@ use mmc_ioc_cmd::{
     SD_BLOCK_SIZE, 
     SDBlock
 };
-use parsers::{SDParser, LongsysSDParser, SandiskSDParser, SwissbitSDParser, SmartDataSDParser};
+use parsers::{SDParser, LongsysSDParser, SandiskSDParser, MicronSDParser, SwissbitSDParser, SmartDataSDParser};
 
 
 use std::fs::File;
@@ -77,7 +77,12 @@ fn main() {
         let cmd56_data_in_res = cmd56_data_in(rfd, cmd, &_data_in, debug_flag);
 
         if cmd56_data_in_res.is_ok() {
-            let parsers_vec: Vec<Box<dyn SDParser>> = vec![Box::new(LongsysSDParser{}), Box::new(SandiskSDParser{}), Box::new(SwissbitSDParser{})];
+            let parsers_vec: Vec<Box<dyn SDParser>> = vec![
+                Box::new(LongsysSDParser{}), 
+                Box::new(SandiskSDParser{}), 
+                Box::new(MicronSDParser{}), 
+                Box::new(SwissbitSDParser{})
+            ];
 
             for parser in parsers_vec {
                 if parser.check_signature(&_data_in)
