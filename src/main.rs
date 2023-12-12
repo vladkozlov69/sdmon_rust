@@ -3,6 +3,7 @@ use std::os::fd::AsFd;
 use mmc_ioc_cmd::{
     cmd56_data_in,
     cmd56_write,
+    dump_buf,
     SD_BLOCK_SIZE, 
     SDBlock
 };
@@ -16,16 +17,7 @@ use std::process;
 mod mmc_ioc_cmd;
 mod parsers;
 
-fn dump_buf(buf: &SDBlock) {
-    println!("=== Begin buffer dump ===");
-    for i in 0..buf.len() {
-        print!("{:02X?} ", buf[i]);
-        if (i+1) % 16 == 0 {
-            println!();
-        }
-    }
-    println!("=== End buffer dump ===");
-}
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();

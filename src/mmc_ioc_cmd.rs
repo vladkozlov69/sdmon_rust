@@ -2,7 +2,6 @@
 
 use nix::ioctl_readwrite;
 use nix::errno::Errno;
-use super::dump_buf;
 
 const MMC_RSP_PRESENT: u32 = 1 << 0;
 const MMC_RSP_136: u32 = 1 << 1;    /* 136 bit response */
@@ -72,6 +71,17 @@ impl MmcIocCmd {
             __pad : 0, 
             data_ptr : lba_block_data as *const u8 as u64 }
     }
+}
+
+pub fn dump_buf(buf: &SDBlock) {
+    println!("=== Begin buffer dump ===");
+    for i in 0..buf.len() {
+        print!("{:02X?} ", buf[i]);
+        if (i+1) % 16 == 0 {
+            println!();
+        }
+    }
+    println!("=== End buffer dump ===");
 }
 
 pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDBlock, debug: bool) -> Result<i32, Errno> {
