@@ -22,30 +22,24 @@ fn nb32(val1: u8, val2: u8, val3: u8, val4:u8) -> u32 {
            (val4 as u32);
 }
 
-fn nib32(block: &SDBlock, offset: usize, nr: usize, shift: i8) -> u32 {
-    return (block[offset+nr] as u32) << shift;
-}
-
-fn nib64(block: &SDBlock, offset: usize, nr: usize, shift: i8) -> u64 {
-    return (block[offset+nr] as u64) << shift;
+fn nb64(val1: u8, val2: u8, val3: u8, val4:u8, val5: u8, val6: u8, val7: u8, val8:u8) -> u64 {
+    return ((val1 as u64) << 56) | 
+           ((val2 as u64) << 48) | 
+           ((val3 as u64) << 40) | 
+           ((val4 as u64) << 32) |
+           ((val5 as u64) << 24) | 
+           ((val6 as u64) << 16) | 
+           ((val7 as u64) << 8)  | 
+           (val8 as u64);
 }
 
 fn nword_to_u32(block: &SDBlock, offset: usize) -> u32 {
-    nib32(block, offset, 3, 24) |
-    nib32(block, offset, 2, 16) |
-    nib32(block, offset, 1, 8)  |
-    nib32(block, offset, 0, 0)
+    return nb32(block[offset+3], block[offset+2], block[offset+1], block[offset]);
 }
 
 fn nword_to_u64(block: &SDBlock, offset: usize) -> u64 {
-    nib64(block, offset, 7, 56) |
-    nib64(block, offset, 6, 48) |
-    nib64(block, offset, 5, 40) |
-    nib64(block, offset, 4, 32) |
-    nib64(block, offset, 3, 24) |
-    nib64(block, offset, 2, 16) |
-    nib64(block, offset, 1, 8)  |
-    nib64(block, offset, 0, 0)
+    return nb64(block[offset+7], block[offset+6],block[offset+5],block[offset+4], 
+                block[offset+3], block[offset+2], block[offset+1], block[offset]);
 }
 
 pub struct LongsysSDParser;
