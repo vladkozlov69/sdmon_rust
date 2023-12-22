@@ -62,7 +62,7 @@ fn main() {
         0x11000001  // ATP Industrial 
     ];
 
-    let mut _data_in: &SDBlock = SDBlock::get_instance();
+    let _data_in: &SDBlock = SDBlock::get_instance();
 
     for cmd  in cmds {
 
