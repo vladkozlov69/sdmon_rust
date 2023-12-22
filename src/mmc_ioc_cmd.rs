@@ -112,17 +112,17 @@ pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDBlock, debug
 }
 
 pub fn cmd56_write(fdesc: i32, cmd56_arg: u32, debug: bool) -> Result<i32, Errno> {
-    let lba_block_data: SDBlock = [0; SD_BLOCK_SIZE];
+    let lba_block_data: &SDBlock = SDBlock::get_instance();
 
     let mut command: MmcIocCmd = MmcIocCmd::new(1, SD_GEN_CMD, 
-        cmd56_arg, COMMAND_FLAGS_CMD56_WRITE, &lba_block_data);
+        cmd56_arg, COMMAND_FLAGS_CMD56_WRITE, lba_block_data);
 
     unsafe {
         let res = mmc_ioc_cmd_rw(fdesc, &mut command);
         if debug {
             dbg!(command);
             if res.is_ok() {
-                dump_buf(&lba_block_data);
+                dump_buf(lba_block_data);
             }
         }
         return res;
