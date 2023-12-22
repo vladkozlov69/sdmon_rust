@@ -2,6 +2,8 @@
 
 use nix::ioctl_readwrite;
 use nix::errno::Errno;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use crate::mmc_ioc_cmd::Cmd56::*;
 
 const MMC_RSP_PRESENT: u32 = 1 << 0;
@@ -35,6 +37,31 @@ ioctl_readwrite!(mmc_ioc_cmd_rw, MMC_BLOCK_MAJOR, 0, MmcIocCmd);
 
 pub type SDBlock = [u8; SD_BLOCK_SIZE];
 
+pub struct SDB1 {
+    data: SDBlock
+}
+
+impl SDB1 {
+    pub fn new() -> Self {
+        return SDB1{data: [0; SD_BLOCK_SIZE]};
+    }
+    pub fn data(&self) -> &SDBlock {
+        return &(self.data);
+    }
+}
+
+impl Display for SDB1 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> { 
+        _ = writeln!(f, "=== Begin buffer dump ===");
+        for i in 0..SD_BLOCK_SIZE {
+            _ = write!(f, "{:02X?} ", self.data[i]);
+            if (i+1) % 16 == 0 {
+                _ = writeln!(f);
+            }
+        }
+        return writeln!(f, "=== End buffer dump ==="); 
+    }
+}
 
 // #[derive(FromPrimitive)]
 pub enum Cmd56 {
@@ -97,27 +124,28 @@ impl MmcIocCmd {
     }
 }
 
-pub fn dump_buf(buf: &SDBlock) {
-    println!("=== Begin buffer dump ===");
-    for i in 0..buf.len() {
-        print!("{:02X?} ", buf[i]);
-        if (i+1) % 16 == 0 {
-            println!();
-        }
-    }
-    println!("=== End buffer dump ===");
-}
+// pub fn dump_buf(buf: &SDBlock) {
+//     println!("=== Begin buffer dump ===");
+//     for i in 0..buf.len() {
+//         print!("{:02X?} ", buf[i]);
+//         if (i+1) % 16 == 0 {
+//             println!();
+//         }
+//     }
+//     println!("=== End buffer dump ===");
+// }
 
-pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDBlock, debug: bool) -> Result<i32, Errno> {
+pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDB1, debug: bool) -> Result<i32, Errno> {
     let mut command: MmcIocCmd = MmcIocCmd::new(0, SD_GEN_CMD, 
-        cmd56_arg, COMMAND_FLAGS_CMD56_DATA_IN, lba_block_data);
+        cmd56_arg, COMMAND_FLAGS_CMD56_DATA_IN, lba_block_data.data());
         
     unsafe {
         let res = mmc_ioc_cmd_rw(fdesc, &mut command/* as *mut _ */);
         if debug {
             dbg!(command);
             if res.is_ok() {
-                dump_buf(lba_block_data);
+                println!("{}", lba_block_data);
+                // dump_buf(lba_block_data);
             }
         }
 
@@ -126,17 +154,17 @@ pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDBlock, debug
 }
 
 pub fn cmd56_write(fdesc: i32, cmd56_arg: u32, debug: bool) -> Result<i32, Errno> {
-    let lba_block_data: &SDBlock = SDBlock::get_instance();
+    let lba_block_data: SDB1 = SDB1::new();
 
     let mut command: MmcIocCmd = MmcIocCmd::new(1, SD_GEN_CMD, 
-        cmd56_arg, COMMAND_FLAGS_CMD56_WRITE, lba_block_data);
+        cmd56_arg, COMMAND_FLAGS_CMD56_WRITE, lba_block_data.data());
 
     unsafe {
         let res = mmc_ioc_cmd_rw(fdesc, &mut command);
         if debug {
             dbg!(command);
             if res.is_ok() {
-                dump_buf(lba_block_data);
+                println!("{}", lba_block_data);
             }
         }
         return res;
