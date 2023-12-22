@@ -2,6 +2,7 @@
 
 use nix::ioctl_readwrite;
 use nix::errno::Errno;
+use crate::mmc_ioc_cmd::Cmd56::*;
 
 const MMC_RSP_PRESENT: u32 = 1 << 0;
 const MMC_RSP_136: u32 = 1 << 1;    /* 136 bit response */
@@ -34,6 +35,19 @@ ioctl_readwrite!(mmc_ioc_cmd_rw, MMC_BLOCK_MAJOR, 0, MmcIocCmd);
 
 pub type SDBlock = [u8; SD_BLOCK_SIZE];
 
+
+// #[derive(FromPrimitive)]
+pub enum Cmd56 {
+    Sandisk = 0x00000001, // Sandisk, Longsys
+    Micron = 0x110005fb, // Micron
+    Swissbit = 0x53420001, // Swissbit 
+    Adata = 0x110005F9, // ADATA
+    LongsysM9H = 0x110005FD, // Longsys Industrial M9H
+    Atp = 0x11000001  // ATP Industrial 
+}
+
+pub const CMDS56: [Cmd56; 6] = [Sandisk, Micron, Swissbit, Adata, LongsysM9H, Atp];
+
 pub trait GetInstance<'sdb, T> {
     fn get_instance() -> &'sdb T;
 }
@@ -46,7 +60,7 @@ impl<'sdb> GetInstance<'sdb, SDBlock> for SDBlock {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct MmcIocCmd {
+struct MmcIocCmd {
     pub write_flag: cty::c_int,
     pub is_acmd: cty::c_int,
     pub opcode: cty::c_uint,

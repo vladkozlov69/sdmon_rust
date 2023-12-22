@@ -5,7 +5,8 @@ use mmc_ioc_cmd::{
     cmd56_write,
     dump_buf,
     SDBlock,
-    GetInstance
+    GetInstance,
+    CMDS56
 };
 use parsers::{SDParser, get_parsers, get_smartdata_parser};
 
@@ -53,20 +54,12 @@ fn main() {
     let fd = fl.as_fd();
     let rfd = fd.as_raw_fd();
 
-    let cmds: [u32; 6] = [
-        0x00000001, // Sandisk, Longsys
-        0x110005fb, // Micron
-        0x53420001, // Swissbit 
-        0x110005F9, // ADATA
-        0x110005FD, // Longsys Industrial M9H
-        0x11000001  // ATP Industrial 
-    ];
-
     let _data_in: &SDBlock = SDBlock::get_instance();
 
-    for cmd  in cmds {
+    for cmd  in CMDS56 {
 
-        let cmd56_data_in_res = cmd56_data_in(rfd, cmd, _data_in, debug_flag);
+        let cmd_value = cmd as u32;
+        let cmd56_data_in_res = cmd56_data_in(rfd, cmd_value, _data_in, debug_flag);
 
         if cmd56_data_in_res.is_ok() {
             let parsers_vec: Vec<Box<dyn SDParser>> = get_parsers();
@@ -79,11 +72,11 @@ fn main() {
                 }
             }
 
-            println!("Command {:010X?} succeeded but no parser available", cmd);
+            println!("Command {:010X?} succeeded but no parser available", cmd_value);
             dump_buf(_data_in);
         }
         else {
-            println!("Command {:010X?} failed", cmd);
+            println!("Command {:010X?} failed", cmd_value);
         }
     }
 
