@@ -4,8 +4,8 @@ use mmc_ioc_cmd::{
     cmd56_data_in,
     cmd56_write,
     dump_buf,
-    SD_BLOCK_SIZE, 
-    SDBlock
+    SDBlock,
+    GetInstance
 };
 use parsers::{SDParser, get_parsers, get_smartdata_parser};
 
@@ -62,7 +62,7 @@ fn main() {
         0x11000001  // ATP Industrial 
     ];
 
-    let mut _data_in: SDBlock = [0; SD_BLOCK_SIZE];
+    let mut _data_in: SDBlock = SDBlock::get_instance();
 
     for cmd  in cmds {
 

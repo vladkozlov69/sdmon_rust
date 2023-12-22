@@ -34,6 +34,16 @@ ioctl_readwrite!(mmc_ioc_cmd_rw, MMC_BLOCK_MAJOR, 0, MmcIocCmd);
 
 pub type SDBlock = [u8; SD_BLOCK_SIZE];
 
+pub trait GetInstance {
+    fn get_instance() -> SDBlock;
+}
+
+impl GetInstance for SDBlock {
+    fn get_instance() -> SDBlock {
+        return [0; SD_BLOCK_SIZE];
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct MmcIocCmd {
