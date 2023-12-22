@@ -64,7 +64,7 @@ pub struct MmcIocCmd {
 }
 
 impl MmcIocCmd {
-    pub fn new(cmd_write_flag: i32, cmd_opcode:u32, cmd_arg: u32, cmd_flags: u32, lba_block_data: &[u8; SD_BLOCK_SIZE]) -> Self {
+    pub fn new(cmd_write_flag: i32, cmd_opcode:u32, cmd_arg: u32, cmd_flags: u32, lba_block_data: &SDBlock) -> Self {
         Self { 
             write_flag : cmd_write_flag, 
             is_acmd : 0, 
