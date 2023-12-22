@@ -62,25 +62,25 @@ fn main() {
         0x11000001  // ATP Industrial 
     ];
 
-    let mut _data_in: SDBlock = SDBlock::get_instance();
+    let mut _data_in: &SDBlock = SDBlock::get_instance();
 
     for cmd  in cmds {
 
-        let cmd56_data_in_res = cmd56_data_in(rfd, cmd, &_data_in, debug_flag);
+        let cmd56_data_in_res = cmd56_data_in(rfd, cmd, _data_in, debug_flag);
 
         if cmd56_data_in_res.is_ok() {
             let parsers_vec: Vec<Box<dyn SDParser>> = get_parsers();
 
             for parser in parsers_vec {
-                if parser.check_signature(&_data_in)
+                if parser.check_signature(_data_in)
                 {
-                    parser.dump_data(&_data_in);
+                    parser.dump_data(_data_in);
                     process::exit(0);
                 }
             }
 
             println!("Command {:010X?} succeeded but no parser available", cmd);
-            dump_buf(&_data_in);
+            dump_buf(_data_in);
         }
         else {
             println!("Command {:010X?} failed", cmd);
@@ -93,13 +93,13 @@ fn main() {
         println!("CMD56 1st CALL FAILED: {}", cmd56_write_res.err().unwrap());
     }
 
-    let cmd56_read_smart_data_res = cmd56_data_in(rfd, 0x00000021, &_data_in, debug_flag);
+    let cmd56_read_smart_data_res = cmd56_data_in(rfd, 0x00000021, _data_in, debug_flag);
 
     if cmd56_read_smart_data_res.is_err() {
         println!("CMD56 2nd CALL FAILED: {}", cmd56_read_smart_data_res.err().unwrap());
         process::exit(0);
     }
     else {
-        get_smartdata_parser().dump_data(&_data_in)
+        get_smartdata_parser().dump_data(_data_in)
     }
 }
