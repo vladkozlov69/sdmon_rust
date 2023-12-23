@@ -3,9 +3,8 @@ use std::os::fd::AsFd;
 use mmc_ioc_cmd::{
     cmd56_data_in,
     cmd56_write,
-    dump_buf,
-    SDBlock,
-    GetInstance
+    CMDS56,
+    SDB1
 };
 use parsers::{SDParser, get_parsers, get_smartdata_parser};
 
@@ -13,6 +12,7 @@ use parsers::{SDParser, get_parsers, get_smartdata_parser};
 use std::fs::File;
 use std::os::fd::AsRawFd;
 use std::process;
+
 
 mod mmc_ioc_cmd;
 mod parsers;
@@ -53,37 +53,29 @@ fn main() {
     let fd = fl.as_fd();
     let rfd = fd.as_raw_fd();
 
-    let cmds: [u32; 6] = [
-        0x00000001, // Sandisk, Longsys
-        0x110005fb, // Micron
-        0x53420001, // Swissbit 
-        0x110005F9, // ADATA
-        0x110005FD, // Longsys Industrial M9H
-        0x11000001  // ATP Industrial 
-    ];
+    let _data_in: SDB1 = SDB1::new(); //&SDBlock = SDBlock::get_instance();
 
-    let mut _data_in: SDBlock = SDBlock::get_instance();
+    for cmd  in CMDS56 {
 
-    for cmd  in cmds {
-
-        let cmd56_data_in_res = cmd56_data_in(rfd, cmd, &_data_in, debug_flag);
+        let cmd_value = cmd as u32;
+        let cmd56_data_in_res = cmd56_data_in(rfd, cmd_value, &_data_in, debug_flag);
 
         if cmd56_data_in_res.is_ok() {
             let parsers_vec: Vec<Box<dyn SDParser>> = get_parsers();
 
             for parser in parsers_vec {
-                if parser.check_signature(&_data_in)
+                if parser.check_signature(_data_in.data())
                 {
-                    parser.dump_data(&_data_in);
+                    parser.dump_data(_data_in.data());
                     process::exit(0);
                 }
             }
 
-            println!("Command {:010X?} succeeded but no parser available", cmd);
-            dump_buf(&_data_in);
+            println!("Command {:010X?} succeeded but no parser available", cmd_value);
+            println!("{}", _data_in);
         }
         else {
-            println!("Command {:010X?} failed", cmd);
+            println!("Command {:010X?} failed", cmd_value);
         }
     }
 
@@ -100,6 +92,6 @@ fn main() {
         process::exit(0);
     }
     else {
-        get_smartdata_parser().dump_data(&_data_in)
+        get_smartdata_parser().dump_data(_data_in.data())
     }
 }

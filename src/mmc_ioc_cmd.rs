@@ -2,6 +2,9 @@
 
 use nix::ioctl_readwrite;
 use nix::errno::Errno;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use crate::mmc_ioc_cmd::Cmd56::*;
 
 const MMC_RSP_PRESENT: u32 = 1 << 0;
 const MMC_RSP_136: u32 = 1 << 1;    /* 136 bit response */
@@ -34,19 +37,57 @@ ioctl_readwrite!(mmc_ioc_cmd_rw, MMC_BLOCK_MAJOR, 0, MmcIocCmd);
 
 pub type SDBlock = [u8; SD_BLOCK_SIZE];
 
-pub trait GetInstance<T> {
-    fn get_instance() -> T;
+pub struct SDB1 {
+    data: SDBlock
 }
 
-impl GetInstance<SDBlock> for SDBlock {
-    fn get_instance() -> SDBlock {
-        return [0; SD_BLOCK_SIZE];
+impl SDB1 {
+    pub fn new() -> Self {
+        return SDB1{data: [0; SD_BLOCK_SIZE]};
+    }
+    pub fn data(&self) -> &SDBlock {
+        return &(self.data);
+    }
+}
+
+impl Display for SDB1 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> { 
+        _ = writeln!(f, "=== Begin buffer dump ===");
+        for i in 0..SD_BLOCK_SIZE {
+            _ = write!(f, "{:02X?} ", self.data[i]);
+            if (i+1) % 16 == 0 {
+                _ = writeln!(f);
+            }
+        }
+        return writeln!(f, "=== End buffer dump ==="); 
+    }
+}
+
+// #[derive(FromPrimitive)]
+pub enum Cmd56 {
+    Sandisk = 0x00000001, // Sandisk, Longsys
+    Micron = 0x110005fb, // Micron
+    Swissbit = 0x53420001, // Swissbit 
+    Adata = 0x110005F9, // ADATA
+    LongsysM9H = 0x110005FD, // Longsys Industrial M9H
+    Atp = 0x11000001  // ATP Industrial 
+}
+
+pub const CMDS56: [Cmd56; 6] = [Sandisk, Micron, Swissbit, Adata, LongsysM9H, Atp];
+
+pub trait GetInstance<'sdb, T> {
+    fn get_instance() -> &'sdb T;
+}
+
+impl<'sdb> GetInstance<'sdb, SDBlock> for SDBlock {
+    fn get_instance() -> &'sdb SDBlock {
+        return &[0; SD_BLOCK_SIZE];
     }
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct MmcIocCmd {
+struct MmcIocCmd {
     pub write_flag: cty::c_int,
     pub is_acmd: cty::c_int,
     pub opcode: cty::c_uint,
@@ -64,7 +105,7 @@ pub struct MmcIocCmd {
 }
 
 impl MmcIocCmd {
-    pub fn new(cmd_write_flag: i32, cmd_opcode:u32, cmd_arg: u32, cmd_flags: u32, lba_block_data: &[u8; SD_BLOCK_SIZE]) -> Self {
+    pub fn new(cmd_write_flag: i32, cmd_opcode:u32, cmd_arg: u32, cmd_flags: u32, lba_block_data: &SDBlock) -> Self {
         Self { 
             write_flag : cmd_write_flag, 
             is_acmd : 0, 
@@ -83,27 +124,28 @@ impl MmcIocCmd {
     }
 }
 
-pub fn dump_buf(buf: &SDBlock) {
-    println!("=== Begin buffer dump ===");
-    for i in 0..buf.len() {
-        print!("{:02X?} ", buf[i]);
-        if (i+1) % 16 == 0 {
-            println!();
-        }
-    }
-    println!("=== End buffer dump ===");
-}
+// pub fn dump_buf(buf: &SDBlock) {
+//     println!("=== Begin buffer dump ===");
+//     for i in 0..buf.len() {
+//         print!("{:02X?} ", buf[i]);
+//         if (i+1) % 16 == 0 {
+//             println!();
+//         }
+//     }
+//     println!("=== End buffer dump ===");
+// }
 
-pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDBlock, debug: bool) -> Result<i32, Errno> {
+pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDB1, debug: bool) -> Result<i32, Errno> {
     let mut command: MmcIocCmd = MmcIocCmd::new(0, SD_GEN_CMD, 
-        cmd56_arg, COMMAND_FLAGS_CMD56_DATA_IN, lba_block_data);
+        cmd56_arg, COMMAND_FLAGS_CMD56_DATA_IN, lba_block_data.data());
         
     unsafe {
         let res = mmc_ioc_cmd_rw(fdesc, &mut command/* as *mut _ */);
         if debug {
             dbg!(command);
             if res.is_ok() {
-                dump_buf(lba_block_data);
+                println!("{}", lba_block_data);
+                // dump_buf(lba_block_data);
             }
         }
 
@@ -112,17 +154,17 @@ pub fn cmd56_data_in(fdesc: i32, cmd56_arg: u32, lba_block_data: &SDBlock, debug
 }
 
 pub fn cmd56_write(fdesc: i32, cmd56_arg: u32, debug: bool) -> Result<i32, Errno> {
-    let lba_block_data: SDBlock = [0; SD_BLOCK_SIZE];
+    let lba_block_data: SDB1 = SDB1::new();
 
     let mut command: MmcIocCmd = MmcIocCmd::new(1, SD_GEN_CMD, 
-        cmd56_arg, COMMAND_FLAGS_CMD56_WRITE, &lba_block_data);
+        cmd56_arg, COMMAND_FLAGS_CMD56_WRITE, lba_block_data.data());
 
     unsafe {
         let res = mmc_ioc_cmd_rw(fdesc, &mut command);
         if debug {
             dbg!(command);
             if res.is_ok() {
-                dump_buf(&lba_block_data);
+                println!("{}", lba_block_data);
             }
         }
         return res;
