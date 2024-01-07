@@ -175,60 +175,46 @@ impl SDParser for TranscendSDParser {
     }
 
     fn dump_data(&self, block: &SDBlock) {
-        println!("Signature: {:02X?} {:02X?}", data_in[0], data_in[1]);
-        if (data_in[0] == 0x54 && data_in[1] == 0x72) {
-            println!("Transcend:true");
-            println!("Secured mode: {:02X?}", (int)(data_in[11]));
-        match data_in[16]
+        println!("Signature: {:02X?} {:02X?}", block[0], block[1]);
+        println!("Transcend:true");
+        println!("Secured mode: {:02X?}", block[11]);
+        match block[16]
         {
             0x00 => println!("Bus width: 1 bit"),
-            0x10 => println!("Bus width: 4 bits")
+            0x10 => println!("Bus width: 4 bits"),
+            _ => println!("Bus width: Unknown ({})", block[16])
         }
 
-        match data_in[18]
+        match block[18]
         {
-            case 0x00:
-                println!("Speed mode: Class 0");
-                break;
-            case 0x01:
-                println!("Speed mode: Class 2");
-                break;
-            case 0x02:
-                println!("Speed mode: Class 4");
-                break;
-            case 0x03:
-                println!("Speed mode: Class 6");
-                break;
-            case 0x04:
-                println!("Speed mode: Class 10");
-                break;
+            0x00 => println!("Speed mode: Class 0"),
+            0x01 => println!("Speed mode: Class 2"),
+            0x02 => println!("Speed mode: Class 4"),
+            0x03 => println!("Speed mode: Class 6"),
+            0x04 => println!("Speed mode: Class 10"),
+            _ => println!("Speed mode: Unknown ({})", block[18])
         }
-        match data_in[19]
+        match block[19]
         {
-            case 0x00:
-                println!("UHS speed grade: Less than 10MB/s");
-                break;
-            case 0x01:
-                println!("UHS speed grade: 10MB/s and higher");
-                break;
-            case 0x03:
-                println!("UHS speed grade: 30MB/s and higher");
-                break;
+            0x00 => println!("UHS speed grade: Less than 10MB/s"),
+            0x01 => println!("UHS speed grade: 10MB/s and higher"),
+            0x03 => println!("UHS speed grade: 30MB/s and higher"),
+            _ => println!("UHS speed grade: Unknown ({})", block[19])
         }
-        println!("New bad blocks cnt: {:02X?}", data_in[26]);
-        println!("Runtime spare blocks cnt: {:02X?}", data_in[27]);
-        println!("Abnormal power loss: {}", (long)((data_in[31] << 24) + (data_in[30] << 16) + (data_in[29] << 8) + data_in[28]));
-        println!("Minimum erase cnt: {}", (long)((data_in[35] << 24) + (data_in[34] << 16) + (data_in[33] << 8) + data_in[32]));
-        println!("Maximum erase cnt: {}", (long)((data_in[39]) + (data_in[38]) + (data_in[37]) + data_in[36]));
-        println!("Average erase cnt: {}", (long)((data_in[47] << 24) + (data_in[46] << 16) + (data_in[45] << 8) + data_in[44]));
+        println!("New bad blocks cnt: {:02X?}", block[26]);
+        println!("Runtime spare blocks cnt: {:02X?}", block[27]);
+        println!("Abnormal power loss: {}", nb32(block[31], block[30], block[29], block[28]));
+        println!("Minimum erase cnt: {}", nb32(block[35], block[34], block[33], block[32]));
+        println!("Maximum erase cnt: {}", nb32(block[39], block[38], block[37], block[36]));
+        println!("Average erase cnt: {}", nb32(block[47], block[46], block[45], block[44]));
     
-        println!("Remaining card life: {}%", (int)(data_in[70]));
-        println!("Total write CRC cnt: {}", bytes_to_int(data_in[72], data_in[73], data_in[74], data_in[75]));
-        println!("Power cycle cnt: {}", bytes_to_int(0, 0, data_in[76], data_in[77]));
+        println!("Remaining card life: {}%", block[70]);
+        println!("Total write CRC cnt: {}", nb32(block[72], block[73], block[74], block[75]));
+        println!("Power cycle cnt: {}", nb32(0, 0, block[76], block[77]));
     
-        println!("NAND flash ID: {:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?}", data_in[80], data_in[81], data_in[82], data_in[83], data_in[84], data_in[85]);
-        println!("IC: %c%c%c%c%c%c%c%c,", data_in[87], data_in[88], data_in[89], data_in[90], data_in[91], data_in[92], data_in[93], data_in[94]);
-        println!("fw version: %c%c%c%c%c%c,", data_in[128], data_in[129], data_in[130], data_in[131], data_in[132], data_in[133]);
+        println!("NAND flash ID: {:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?}", block[80], block[81], block[82], block[83], block[84], block[85]);
+        // println!("IC: %c%c%c%c%c%c%c%c,", block[87], block[88], block[89], block[90], block[91], block[92], block[93], block[94]);
+        // println!("fw version: %c%c%c%c%c%c,", block[128], block[129], block[130], block[131], block[132], block[133]);
     }
 }
 
