@@ -46,6 +46,7 @@ pub struct LongsysSDParser;
 pub struct SandiskSDParser;
 pub struct MicronSDParser;
 pub struct SwissbitSDParser;
+pub struct TranscendSDParser;
 pub struct SmartDataSDParser;
 
 impl SDParser for LongsysSDParser {
@@ -168,6 +169,69 @@ impl SDParser for SwissbitSDParser {
     } 
 }
 
+impl SDParser for TranscendSDParser {
+    fn check_signature(&self, block: &SDBlock) -> bool {
+        return block[0] == 0x54 && block[1] == 0x72;
+    }
+
+    fn dump_data(&self, block: &SDBlock) {
+        println!("Signature: {:02X?} {:02X?}", data_in[0], data_in[1]);
+        if (data_in[0] == 0x54 && data_in[1] == 0x72) {
+            println!("Transcend:true");
+            println!("Secured mode: {:02X?}", (int)(data_in[11]));
+        match data_in[16]
+        {
+            0x00 => println!("Bus width: 1 bit"),
+            0x10 => println!("Bus width: 4 bits")
+        }
+
+        match data_in[18]
+        {
+            case 0x00:
+                println!("Speed mode: Class 0");
+                break;
+            case 0x01:
+                println!("Speed mode: Class 2");
+                break;
+            case 0x02:
+                println!("Speed mode: Class 4");
+                break;
+            case 0x03:
+                println!("Speed mode: Class 6");
+                break;
+            case 0x04:
+                println!("Speed mode: Class 10");
+                break;
+        }
+        match data_in[19]
+        {
+            case 0x00:
+                println!("UHS speed grade: Less than 10MB/s");
+                break;
+            case 0x01:
+                println!("UHS speed grade: 10MB/s and higher");
+                break;
+            case 0x03:
+                println!("UHS speed grade: 30MB/s and higher");
+                break;
+        }
+        println!("New bad blocks cnt: {:02X?}", data_in[26]);
+        println!("Runtime spare blocks cnt: {:02X?}", data_in[27]);
+        println!("Abnormal power loss: {}", (long)((data_in[31] << 24) + (data_in[30] << 16) + (data_in[29] << 8) + data_in[28]));
+        println!("Minimum erase cnt: {}", (long)((data_in[35] << 24) + (data_in[34] << 16) + (data_in[33] << 8) + data_in[32]));
+        println!("Maximum erase cnt: {}", (long)((data_in[39]) + (data_in[38]) + (data_in[37]) + data_in[36]));
+        println!("Average erase cnt: {}", (long)((data_in[47] << 24) + (data_in[46] << 16) + (data_in[45] << 8) + data_in[44]));
+    
+        println!("Remaining card life: {}%", (int)(data_in[70]));
+        println!("Total write CRC cnt: {}", bytes_to_int(data_in[72], data_in[73], data_in[74], data_in[75]));
+        println!("Power cycle cnt: {}", bytes_to_int(0, 0, data_in[76], data_in[77]));
+    
+        println!("NAND flash ID: {:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?}", data_in[80], data_in[81], data_in[82], data_in[83], data_in[84], data_in[85]);
+        println!("IC: %c%c%c%c%c%c%c%c,", data_in[87], data_in[88], data_in[89], data_in[90], data_in[91], data_in[92], data_in[93], data_in[94]);
+        println!("fw version: %c%c%c%c%c%c,", data_in[128], data_in[129], data_in[130], data_in[131], data_in[132], data_in[133]);
+    }
+}
+
 impl SDParser for SmartDataSDParser {
     fn check_signature(&self, block: &SDBlock) -> bool {
         return (block[0] != 0x70 || block[1] != 0x58) && (block[0] != 0x44 || (block[1] != 0x53 || block[1] != 0x57));
@@ -214,7 +278,8 @@ pub fn get_parsers() -> Vec<Box<dyn SDParser>> {
         Box::new(LongsysSDParser{}), 
         Box::new(SandiskSDParser{}), 
         Box::new(MicronSDParser{}), 
-        Box::new(SwissbitSDParser{})]
+        Box::new(SwissbitSDParser{}),
+        Box::new(TranscendSDParser{})]
 }
 
 pub fn get_smartdata_parser() -> Box<dyn SDParser> {

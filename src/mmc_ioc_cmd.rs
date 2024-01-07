@@ -70,7 +70,8 @@ pub enum Cmd56 {
     Swissbit = 0x53420001, // Swissbit 
     Adata = 0x110005F9, // ADATA
     LongsysM9H = 0x110005FD, // Longsys Industrial M9H
-    Atp = 0x11000001  // ATP Industrial 
+    Atp = 0x11000001,  // ATP Industrial 
+    Transcend = 0x110005f9
 }
 
 pub const CMDS56: [Cmd56; 6] = [Sandisk, Micron, Swissbit, Adata, LongsysM9H, Atp];
