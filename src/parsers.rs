@@ -100,7 +100,7 @@ impl SDParser for SandiskSDParser {
         println!("featureRevision: {}", block[11]);
         println!("generationIdentifier: {}", block[14]);
         println!("productString: {}", product_string);
-        println!("power-on times: {}", nb32(0, block[24], block[25], block[26]));
+        println!("power-on times: {}", nb32(0, 0, block[25], block[26]));
         println!("Tag: {}", tag_string);
         /*
 1. SanDisk Industrial, compared to the data manual, adds 26L-24H, data name: power-on times
