@@ -68,13 +68,13 @@ pub enum Cmd56 {
     Sandisk = 0x00000001, // Sandisk, Longsys
     Micron = 0x110005fb, // Micron
     Swissbit = 0x53420001, // Swissbit 
-    Adata = 0x110005F9, // ADATA
+    Transcend = 0x110005F9, // Transcend
     LongsysM9H = 0x110005FD, // Longsys Industrial M9H
-    Atp = 0x11000001  // ATP Industrial 
-    // Transcend = 0x110005f9
+    Atp = 0x11000001,  // ATP Industrial 
+    AData = 0x110005f1
 }
 
-pub const CMDS56: [Cmd56; 6] = [Sandisk, Micron, Swissbit, Adata, LongsysM9H, Atp];
+pub const CMDS56: [Cmd56; 7] = [Sandisk, Micron, Swissbit, Transcend, LongsysM9H, Atp, AData];
 
 pub trait GetInstance<'sdb, T> {
     fn get_instance() -> &'sdb T;

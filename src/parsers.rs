@@ -47,6 +47,7 @@ pub struct SandiskSDParser;
 pub struct MicronSDParser;
 pub struct SwissbitSDParser;
 pub struct TranscendSDParser;
+pub struct ADataSDParser;
 pub struct SmartDataSDParser;
 
 impl SDParser for LongsysSDParser {
@@ -213,8 +214,56 @@ impl SDParser for TranscendSDParser {
         println!("Power cycle cnt: {}", nb32(0, 0, block[76], block[77]));
     
         println!("NAND flash ID: {:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?}", block[80], block[81], block[82], block[83], block[84], block[85]);
-        // println!("IC: %c%c%c%c%c%c%c%c,", block[87], block[88], block[89], block[90], block[91], block[92], block[93], block[94]);
-        // println!("fw version: %c%c%c%c%c%c,", block[128], block[129], block[130], block[131], block[132], block[133]);
+        println!("IC: {}{}{}{}{}{}{}{}", 
+            block[87] as char, block[88] as char, block[89] as char, block[90] as char, 
+            block[91] as char, block[92] as char, block[93] as char, block[94] as char);
+        println!("fw version: {}{}{}{}{}{}", 
+            block[128] as char, block[129] as char, block[130] as char, block[131] as char, 
+            block[132] as char, block[133] as char);
+    }
+}
+
+impl SDParser for ADataSDParser {
+    fn check_signature(&self, block: &SDBlock) -> bool {
+        return block[0] == 0x09 && block[1] == 0x41;
+    }
+
+    fn dump_data(&self, block: &SDBlock) {
+        println!("Signature: {:02X?} {:02X?}", block[0], block[1]);
+        println!("Transcend:true");
+
+        println!("Adata:true");
+        println!("Factory bad block cnt: {}", nb16(block[24], block[25]));
+        println!("Grown bad block cnt: {}", block[26]);
+        println!("Spare SLC block cnt: {}", block[27]);
+        println!("Spare block cnt: {}",nb16(block[30] ,block[31]));
+        println!("Data area minimum erase cnt: {}", nb32(block[32], block[33], block[34], block[35]));
+        println!("Data area maximum erase cnt: {}", nb32(block[36], block[37], block[38], block[39]));
+        println!("Data area total erase cnt: {}", nb32(block[40], block[41], block[42], block[43]));
+        println!("Data area average erase cnt: {}", nb32(block[44], block[45], block[46], block[47]));
+        println!("System area minimum erase cnt: {}", nb32(block[48], block[49], block[50], block[51]));
+        println!("System area maximum erase cnt: {}", nb32(block[52], block[53], block[54], block[55]));
+        println!("System area total erase count: {}", nb32(block[56], block[57], block[58], block[59]));
+        println!("System area average erase cnt: {}", nb32(block[60], block[61], block[62], block[63]));
+        println!("Raw card capacity: {} MB", nb32(block[64], block[65], block[66], block[67]));
+        println!("PE Cycle life: {}", nb16(block[68], block[69]));
+        println!("Remaining life: {}%", block[70]);
+        println!("Power cucle cnt: {}", nb32(block[76], block[77], block[78], block[79]));
+        println!("Flash ID: {:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?} {:02X?}", block[80], block[81], block[82], block[83], block[84], block[85], block[86]);
+        println!("Controller: {}{}{}{}{}{}", 
+            block[88] as char, block[89] as char, block[90] as char, block[91] as char, 
+            block[92] as char, block[93] as char);
+        println!("TLC read reclaim: {}", nb16(block[96], block[97]));
+        println!("SLC read reclaim: {}", nb16(block[98], block[99]));
+        println!("Firmware block refresh: {}", nb16(block[100], block[101]));
+        println!("TLC read threshold: {}", nb32(block[104], block[105], block[106], block[107]));
+        println!("SLC read threshold: {}", nb32(block[108], block[109], block[110], block[111]));
+        println!("FW version: {}{}{}{}{}{}", 
+            block[128] as char, block[129] as char, block[130] as char, block[131] as char, 
+            block[132] as char, block[133] as char);
+        println!("TLC refresh cnt: {}", nb32(block[136], block[137], block[138], block[139]));
+        println!("SLC refresh cnt: {}", nb32(block[140], block[141], block[143], block[144]));
+
     }
 }
 
@@ -265,7 +314,8 @@ pub fn get_parsers() -> Vec<Box<dyn SDParser>> {
         Box::new(SandiskSDParser{}), 
         Box::new(MicronSDParser{}), 
         Box::new(SwissbitSDParser{}),
-        Box::new(TranscendSDParser{})]
+        Box::new(TranscendSDParser{}),
+        Box::new(ADataSDParser{})]
 }
 
 pub fn get_smartdata_parser() -> Box<dyn SDParser> {
