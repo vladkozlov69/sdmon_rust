@@ -64,12 +64,14 @@ impl Display for SDB1 {
 }
 
 // #[derive(FromPrimitive)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Cmd56 {
+    
     Sandisk = 0x00000001, // Sandisk, Longsys
     Micron = 0x110005fb, // Micron
     Swissbit = 0x53420001, // Swissbit 
     Transcend = 0x110005F9, // Transcend
-    LongsysM9H = 0x110005FD, // Longsys Industrial M9H
+    LongsysM9H = 0x110005FD, // Longsys Industrial M9H, Innodisk
     Atp = 0x11000001,  // ATP Industrial 
     AData = 0x110005f1
 }

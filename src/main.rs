@@ -64,7 +64,7 @@ fn main() {
             let parsers_vec: Vec<Box<dyn SDParser>> = get_parsers();
 
             for parser in parsers_vec {
-                if parser.check_signature(_data_in.data())
+                if parser.check_signature(cmd, _data_in.data())
                 {
                     parser.dump_data(_data_in.data());
                     process::exit(0);

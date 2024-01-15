@@ -1,8 +1,9 @@
 use super::mmc_ioc_cmd::SDBlock;
+use super::mmc_ioc_cmd::Cmd56;
 use std::str;
 
 pub trait SDParser {
-    fn check_signature(&self, _block: &SDBlock) -> bool {
+    fn check_signature(&self, _command:Cmd56, _block: &SDBlock) -> bool {
         return false;
     }
 
@@ -49,9 +50,10 @@ pub struct SwissbitSDParser;
 pub struct TranscendSDParser;
 pub struct ADataSDParser;
 pub struct SmartDataSDParser;
+pub struct InnodiskSDParser;
 
 impl SDParser for LongsysSDParser {
-    fn check_signature(&self, block: &SDBlock) -> bool {
+    fn check_signature(&self, _command:Cmd56, block: &SDBlock) -> bool {
         return block[0] == 0x70 && block[1] == 0x58;
     }
 
@@ -73,7 +75,7 @@ impl SDParser for LongsysSDParser {
 }
 
 impl SDParser for SandiskSDParser {
-    fn check_signature(&self, block: &SDBlock) -> bool {
+    fn check_signature(&self, _command:Cmd56, block: &SDBlock) -> bool {
         return block[0] == 0x44 && (block[1] == 0x53 || block[1] == 0x57);
     }
 
@@ -113,7 +115,7 @@ impl SDParser for SandiskSDParser {
 }
 
 impl SDParser for MicronSDParser {
-    fn check_signature(&self, block: &SDBlock) -> bool {
+    fn check_signature(&self, _command:Cmd56, block: &SDBlock) -> bool {
         return block[0] == 0x4d && block[1] == 0x45;
     }
 
@@ -126,7 +128,7 @@ impl SDParser for MicronSDParser {
 }
 
 impl SDParser for SwissbitSDParser {
-    fn check_signature(&self, block: &SDBlock) -> bool {
+    fn check_signature(&self, _command:Cmd56, block: &SDBlock) -> bool {
         return block[0] == 0x53 && block[1] == 0x77;
     }
 
@@ -171,7 +173,7 @@ impl SDParser for SwissbitSDParser {
 }
 
 impl SDParser for TranscendSDParser {
-    fn check_signature(&self, block: &SDBlock) -> bool {
+    fn check_signature(&self, _command:Cmd56, block: &SDBlock) -> bool {
         return block[0] == 0x54 && block[1] == 0x72;
     }
 
@@ -206,7 +208,7 @@ impl SDParser for TranscendSDParser {
         println!("Runtime spare blocks cnt: {:02X?}", block[27]);
         println!("Abnormal power loss: {}", nb32(block[31], block[30], block[29], block[28]));
         println!("Minimum erase cnt: {}", nb32(block[35], block[34], block[33], block[32]));
-        println!("Maximum erase cnt: {}", nb32(block[39], block[38], block[37], block[36]));
+        println!("Maximum erase cnt: {}", nb32(block[36], block[37], block[38], block[39]));
         println!("Average erase cnt: {}", nb32(block[47], block[46], block[45], block[44]));
     
         println!("Remaining card life: {}%", block[70]);
@@ -224,14 +226,12 @@ impl SDParser for TranscendSDParser {
 }
 
 impl SDParser for ADataSDParser {
-    fn check_signature(&self, block: &SDBlock) -> bool {
+    fn check_signature(&self, _command:Cmd56, block: &SDBlock) -> bool {
         return block[0] == 0x09 && block[1] == 0x41;
     }
 
     fn dump_data(&self, block: &SDBlock) {
         println!("Signature: {:02X?} {:02X?}", block[0], block[1]);
-        println!("Transcend:true");
-
         println!("Adata:true");
         println!("Factory bad block cnt: {}", nb16(block[24], block[25]));
         println!("Grown bad block cnt: {}", block[26]);
@@ -267,8 +267,56 @@ impl SDParser for ADataSDParser {
     }
 }
 
+impl SDParser for InnodiskSDParser {
+    fn check_signature(&self, command:Cmd56, block: &SDBlock) -> bool {
+        return command == Cmd56::LongsysM9H && block[0] == 0x4c && block[1] == 0x58;
+    }
+
+    fn dump_data(&self, block: &SDBlock) {
+        println!("Signature: {:02X?} {:02X?}", block[0], block[1]);
+        println!("Innodisk:true");
+        match block[16]
+        {
+            0x00 => println!("Bus width: 1 bit"),
+            0x10 => println!("Bus width: 4 bits"),
+            _ => println!("Bus width: Unknown ({})", block[16])
+        }
+
+        match block[18]
+        {
+            0x00 => println!("Speed mode: Class 0"),
+            0x01 => println!("Speed mode: Class 2"),
+            0x02 => println!("Speed mode: Class 4"),
+            0x03 => println!("Speed mode: Class 6"),
+            0x04 => println!("Speed mode: Class 10"),
+            _ => println!("Speed mode: Unknown ({})", block[18])
+        }
+        match block[19]
+        {
+            0x00 => println!("UHS speed grade: Less than 10MB/s"),
+            0x01 => println!("UHS speed grade: 10MB/s and higher"),
+            0x03 => println!("UHS speed grade: 30MB/s and higher"),
+            _ => println!("UHS speed grade: Unknown ({})", block[19])
+        }
+	
+        println!("Total spare blocks cnt: {}", block[24]);
+	    println!("Factory bad blocks cnt: {}", block[25]);
+	    println!("Runtime bad blocks cnt: {}", block[26]);
+	    println!("Spare utilization rate: {}%", block[27]);
+	    println!("SPOR failure cnt: {}", nb32(block[28], block[29], block[30], block[31]));
+	    println!("Minimum erase cnt: {}", nb32(block[35], block[34], block[33], block[32]));
+	    println!("Maximum erase cnt: {}", nb32(block[39], block[38], block[37], block[36]));
+	    println!("Total erase cnt: {}", nb32(block[43], block[42], block[41], block[40]));
+	    println!("Average erase cnt: {}", nb32(block[47], block[46], block[45], block[44]));
+	    println!("FW version: {}{}{}{}{}{}{}", 
+            block[53] as char, block[54] as char, block[55] as char, block[56] as char, 
+            block[57] as char, block[58] as char, block[59] as char);
+
+    }
+}
+
 impl SDParser for SmartDataSDParser {
-    fn check_signature(&self, block: &SDBlock) -> bool {
+    fn check_signature(&self, _command:Cmd56, block: &SDBlock) -> bool {
         return (block[0] != 0x70 || block[1] != 0x58) && (block[0] != 0x44 || (block[1] != 0x53 || block[1] != 0x57));
     }
 
